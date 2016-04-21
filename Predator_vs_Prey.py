@@ -134,11 +134,10 @@ for a in range(NUM_BOOSTING):
 				else:
 						cursor_convolved_best.get().set(0)
 							
-				if xor(cursor_convolved_best.get().get(),cursor_class.get().get()):
-						cursor_convolved_best.get().set(0)
-				else:
-						cum_error += 1 * error_weights[j][k]
-						cursor_convolved_best.get().set(1)
+				if xor(cursor_convolved_best.get().get(),cursor_class.get().get()) == False:
+#						cursor_convolved_best.get().set(0)
+						cum_error += 1.0 * error_weights[j][k]
+#						cursor_convolved_best.get().set(1)
 				k += 1
 #		classification[j] = convolved_best
 		
@@ -159,6 +158,10 @@ for a in range(NUM_BOOSTING):
 				cursor_final.fwd()
 				cursor_convolved_best.fwd()
 				print(cursor_final.get().get())
+				print(cursor_convolved_best.get().get())
+				print(kernel_weight)
+				print(cursor_convolved_best.get().get() * kernel_weight)
+				print(cursor_final.get().get() + cursor_convolved_best.get().get() * kernel_weight)
 				cursor_final.get().set(cursor_final.get().get() + cursor_convolved_best.get().get() * kernel_weight)
 				error_weights[j][k] = error_weights[j][k] * (math.exp(-1 * classifications[j][k] * cursor_convolved_best.get().get() * kernel_weight))
 				k += 1
