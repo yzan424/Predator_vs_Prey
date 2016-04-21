@@ -35,7 +35,7 @@ final_images = []
 #make initial "ensemble" a blank image		
 for i in range(NUM_IMAGES):
 #	curr_image = ops.create().imgPlus(ds.open("/Users/test/Desktop/prey_images/grass_greyscale.jpg"))
-	curr_image = ds.open("/Users/test/Desktop/prey_images/grass_greyscale.jpg").getImgPlus()
+	curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
 	cursor_curr=curr_image.cursor()
 
 	while ( cursor_curr.hasNext()):
@@ -48,9 +48,9 @@ for i in range(NUM_IMAGES):
 #load relevant images
 for i in range(1,NUM_IMAGES + 1):
 	if (i == 1):
-		curr_image = ds.open("/Users/test/Desktop/prey_images/grass_greyscale.jpg").getImgPlus()
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
 	else:
-		curr_image = ds.open("/Users/test/Desktop/prey_images/generation0000%d_max_prey.png" % (i * NUM_IMAGES)).getImgPlus()
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/generation0000%d_max_prey.png" % (i * NUM_IMAGES)).getImgPlus()
 	
 	#normalize image -- math errors?
 	curr_image = ops.convert().float32(curr_image)
@@ -64,7 +64,7 @@ for i in range(1,NUM_IMAGES + 1):
 		
 	preys.append(curr_image)
 	if (i == 0):
-		curr_image = ds.open("/Users/test/Desktop/prey_images/grass_greyscale.jpg").getImgPlus()
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
 		cursor_curr=curr_image.cursor()
 	
 		
@@ -73,7 +73,7 @@ for i in range(1,NUM_IMAGES + 1):
 			cursor_curr.get().set(-1)
 		classification.append(curr_image)
 	else:
-		curr_image = ds.open("/Users/test/Desktop/prey_images/classification.png").getImgPlus()
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/classification.png").getImgPlus()
 		cursor_curr=curr_image.cursor()
 	
 		while ( cursor_curr.hasNext()):
