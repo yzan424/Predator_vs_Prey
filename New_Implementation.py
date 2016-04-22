@@ -24,7 +24,7 @@ Y_DIM = 250
 NUM_IMAGES = 3
 NUM_BOOSTING = 3
 NUM_KERNEL_SEARCHING = 100
-THRESHOLD = 0
+THRESHOLD = 95
 #95
 
 preys = []
@@ -53,32 +53,32 @@ for i in range(1,NUM_IMAGES + 1):
 		
 		while ( cursor_curr.hasNext()):
 			cursor_curr.fwd()
-			cursor_curr.get().set(-1)
+			cursor_curr.get().set(0)
 		classification.append(curr_image)
 		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
 		
 	else:
 		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/classification.png").getImgPlus()
-		cursor_curr=curr_image.cursor()
-	
-		while ( cursor_curr.hasNext()):
-			cursor_curr.fwd()
-			if (cursor_curr.get().get() == 0):
-				cursor_curr.get().set(-1)
-			else:
-				cursor_curr.get().set(1)
+#		cursor_curr=curr_image.cursor()
+#	
+#		while ( cursor_curr.hasNext()):
+#			cursor_curr.fwd()
+#			if (cursor_curr.get().get() == 0):
+#				cursor_curr.get().set(-1)
+#			else:
+#				cursor_curr.get().set(1)
 		classification.append(curr_image)
 		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/generation0000%d_max_prey.png" % (i * NUM_IMAGES)).getImgPlus()
 	
 	#normalize image
 	curr_image = ops.convert().float32(curr_image)
-	cursor_image=curr_image.cursor()
-	mean = ops.stats().mean(curr_image)
-	std_dev = ops.stats().stdDev(curr_image)
-	
-	while ( cursor_image.hasNext()):
-		cursor_image.fwd()
-		cursor_image.get().set( (cursor_image.get().get() - mean.get())/ std_dev.get() )
+#	cursor_image=curr_image.cursor()
+#	mean = ops.stats().mean(curr_image)
+#	std_dev = ops.stats().stdDev(curr_image)
+#	
+#	while ( cursor_image.hasNext()):
+#		cursor_image.fwd()
+#		cursor_image.get().set( (cursor_image.get().get() - mean.get())/ std_dev.get() )
 		
 	preys.append(curr_image)
 		
@@ -119,12 +119,12 @@ for a in range(NUM_BOOSTING):
 				if (cursor_convolved_best.get().get() > THRESHOLD):
 						cursor_convolved_best.get().set( 1 )
 				else:
-						cursor_convolved_best.get().set( -1 )
+						cursor_convolved_best.get().set( 0 )
 						
 				if (cursor_convolved_mod.get().get() > THRESHOLD):
 						cursor_convolved_mod.get().set( 1 )
 				else:
-						cursor_convolved_mod.get().set( -1 )	
+						cursor_convolved_mod.get().set( 0 )	
 
 				if xor(cursor_convolved_best.get().get(),cursor_class.get().get()) == False:
 						best_error += 1.0 * error_weights[curr_prey_index][curr_pixel_index]
@@ -155,7 +155,7 @@ for a in range(NUM_BOOSTING):
 				if (cursor_convolved_best.get().get() > THRESHOLD):
 						cursor_convolved_best.get().set(1)
 				else:
-						cursor_convolved_best.get().set(-1)
+						cursor_convolved_best.get().set(0)
 							
 				if xor(cursor_convolved_best.get().get(),cursor_class.get().get()) == False:
 #						cursor_convolved_best.get().set(0)
@@ -193,7 +193,7 @@ for a in range(NUM_BOOSTING):
 				if (cursor_final.get().get() > THRESHOLD):
 						cursor_output.get().set(1)
 				else:
-						cursor_output.get().set(-1)
+						cursor_output.get().set(0)
 				k += 1
 		ui.show(output)
 
