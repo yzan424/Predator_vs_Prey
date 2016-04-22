@@ -13,23 +13,50 @@ from ij import IJ
 from mpicbg.imglib.interpolation.nearestneighbor import NearestNeighborInterpolatorFactory;
 
 import random
+import math
 
 preys = []
 classification = []
 # kernels = []
+
+#load relevant images
 for i in range(1,4):
-	if i == 0:
-		preys.append(ops.create().imgPlus(ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg")))
-		curr_image = ops.create().imgPlus(ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg"))
+	if (i == 1):
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
+	else:
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/generation0000%d_max_prey.png" % (i * 3)).getImgPlus()
 	
-		while (cursor_curr.hasNext()):
+	#normalize image
+#	curr_image = ops.convert().float32(curr_image)
+#	cursor_image=curr_image.cursor()
+#	mean = ops.stats().mean(curr_image)
+#	std_dev = ops.stats().stdDev(curr_image)
+#	
+#	while ( cursor_image.hasNext()):
+#		cursor_image.fwd()
+#		cursor_image.get().set( (cursor_image.get().get() - mean.get())/ std_dev.get() )
+		
+	preys.append(curr_image)
+	if (i == 1):
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
+		cursor_curr=curr_image.cursor()
+	
+		while ( cursor_curr.hasNext()):
 			cursor_curr.fwd()
 			cursor_curr.get().set(0)
 		classification.append(curr_image)
 	else:
-		preys.append(ops.create().imgPlus(ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/generation0000%d_max_prey.png" % (i * 3))))
-		classification.append(ops.create().imgPlus(ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/classification.png")))
-
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/classification.png").getImgPlus()
+#		cursor_curr=curr_image.cursor()
+#	
+#		while ( cursor_curr.hasNext()):
+#			cursor_curr.fwd()
+#			if (cursor_curr.get().get() == 0):
+#				cursor_curr.get().set(-1)
+#			else:
+#				cursor_curr.get().set(1)
+		classification.append(curr_image)
+		
 xSize = 250
 ySize = 250
 
@@ -101,10 +128,11 @@ for a in range(5):
 						cursor_convolve1.get().set( 0 )
 							
 				if ((cursor_convolve1.get().get() > 0 and cursor_class.get().get()) > 0 or (cursor_convolve1.get().get() <= 0 and cursor_class.get().get() <= 0)):
-						cursor_convolve1.get().set( 0 )
-				else:
 						cursor_convolve1.get().set( 1 )
+				else:
+						cursor_convolve1.get().set( 0 )
 		classification[i] = convolved1
+	print("iteration!")
 
 image1=ops.create().imgPlus(classification[0])
 image1.setName("image1")

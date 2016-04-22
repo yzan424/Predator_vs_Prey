@@ -49,29 +49,14 @@ for i in range(NUM_IMAGES):
 for i in range(1,NUM_IMAGES + 1):
 	if (i == 1):
 		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
-	else:
-		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/generation0000%d_max_prey.png" % (i * NUM_IMAGES)).getImgPlus()
-	
-	#normalize image -- math errors?
-	curr_image = ops.convert().float32(curr_image)
-	cursor_image=curr_image.cursor()
-	mean = ops.stats().mean(curr_image)
-	std_dev = ops.stats().stdDev(curr_image)
-	
-	while ( cursor_image.hasNext()):
-		cursor_image.fwd()
-		cursor_image.get().set( (cursor_image.get().get() - mean.get())/ std_dev.get() )
-		
-	preys.append(curr_image)
-	if (i == 0):
-		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
 		cursor_curr=curr_image.cursor()
-	
 		
 		while ( cursor_curr.hasNext()):
 			cursor_curr.fwd()
 			cursor_curr.get().set(-1)
 		classification.append(curr_image)
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
+		
 	else:
 		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/classification.png").getImgPlus()
 		cursor_curr=curr_image.cursor()
@@ -83,6 +68,20 @@ for i in range(1,NUM_IMAGES + 1):
 			else:
 				cursor_curr.get().set(1)
 		classification.append(curr_image)
+		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/generation0000%d_max_prey.png" % (i * NUM_IMAGES)).getImgPlus()
+	
+	#normalize image
+	curr_image = ops.convert().float32(curr_image)
+	cursor_image=curr_image.cursor()
+	mean = ops.stats().mean(curr_image)
+	std_dev = ops.stats().stdDev(curr_image)
+	
+	while ( cursor_image.hasNext()):
+		cursor_image.fwd()
+		cursor_image.get().set( (cursor_image.get().get() - mean.get())/ std_dev.get() )
+		
+	preys.append(curr_image)
+		
 
 #main loop
 for a in range(NUM_BOOSTING):
