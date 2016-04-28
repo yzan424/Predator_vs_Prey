@@ -39,7 +39,7 @@ classification = []
 #TODO: CHANGE THIS TO CURSORS
 #TODO: POTENTIALLY MULTIPLE BY NUM_IMAGES TO MAKE BEST ERROR CALC NOT AN AVERAGE
 error_weights = []
-
+error_vis = []
 
 final_images = []
 
@@ -106,6 +106,7 @@ for i in range(NUM_BOOSTING):
 #		TODO: MAKE KERNEL NORMALIZED
 	kernel_best = ops.create().kernelGauss([X_KERNEL, Y_KERNEL])
 	cursor_image=kernel_best.cursor()
+	curr_error_curve = []
 	
 	while ( cursor_image.hasNext()):
 		cursor_image.fwd()
@@ -154,9 +155,11 @@ for i in range(NUM_BOOSTING):
 		if (mod_error < best_error):
 				kernel_best = ops.copy().img(kernel_mod)
 				best_error = mod_error
+				
 		else:
 				kernel_mod = ops.copy().img(kernel_best)
-					
+		curr_error_curve.append(best_error)	
+			
 	#weight to put on convolved image before adding to ensemble	
 #	if (best_error == 0):
 #		kernel_weight = 1
@@ -193,9 +196,16 @@ for i in range(NUM_BOOSTING):
 		ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(output)),"%s/boosting_%d_imagenum_%d.jpg" % (data_dir, i, j))
 #		if (i == NUM_BOOSTING - 1):
 #			ui.show(output)
+	error_vis.append(curr_error_curve)
 	print("iteration!")
+	
 for i in range(NUM_IMAGES):
 	ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(final_images[i])),"%s/final_%d.jpg" % (data_dir, i))
+
+f = open("%s/error_curve.csv" % (data_dir), "w")
+for i in range(len(error_vis[0])):
+	f.write('\t'.join([error_vis[j][i] for j in range(len(error_vis))]))
+f.close()
 #image1=ops.create().imgPlus(final_images[0])
 #image1.setName("image1")
 #image2=ops.create().imgPlus(final_images[1])
