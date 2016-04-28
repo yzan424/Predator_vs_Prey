@@ -3,6 +3,8 @@
 # @OUTPUT ImgPlus image1
 # @OUTPUT ImgPlus image2
 # @OUTPUT ImgPlus image3
+# @OUTPUT ImgPlus image4
+# @OUTPUT ImgPlus image5
 
 from net.imglib2 import Point
 
@@ -17,7 +19,7 @@ import math
 
 preys = []
 classification = []
-# kernels = []
+kernels = []
 
 #load relevant images
 for i in range(1,4):
@@ -62,8 +64,7 @@ ySize = 250
 kernel_init=ops.create().kernelGauss([16, 16])
 score1=0
 for a in range(5):
-	kernel_mod=ops.copy().img(kernel_init)
-				
+	kernel_mod=ops.copy().img(kernel_init)		
 	for i in range(100): 
 			
 		cursor_kernel_mod=kernel_mod.cursor()
@@ -74,7 +75,6 @@ for a in range(5):
 		
 		threshold=95
 		score2=0
-		
 		for b in range(3):
 			convolved2=ops.filter().convolve(preys[b], kernel_mod)
 			
@@ -92,17 +92,17 @@ for a in range(5):
 						
 				if ((cursor_convolve2.get().get() > 0 and cursor_class.get().get()) > 0 or (cursor_convolve2.get().get() <= 0 and cursor_class.get().get() <= 0)):
 						score2 += 1	
+			
 		if (score2 > score1):
 				kernel_init = ops.copy().img(kernel_mod)
 				score1 = score2
 		else:
-				kernel_mod = ops.copy().img(kernel_init)
-					
-	# kernels.append(kernel_init)
+				kernel_mod = ops.copy().img(kernel_init)	
+	kernels.append(kernel_init)
 	
 	for i in range(3):
 		convolved1=ops.filter().convolve(preys[i], kernel_init)
-		
+		preys[i] = convolved1
 		cursor_convolve1=convolved1.cursor()
 		cursor_class=classification[i].cursor()
 		
@@ -122,6 +122,24 @@ for a in range(5):
 		classification[i] = convolved1
 	print("iteration!")
 
+curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
+for i in range(len(kernels)):
+	curr_image = ops.filter().convolve(curr_image, kernels[i])
+
+cursor_image=curr_image.cursor()
+threshold = 95
+
+while ( cursor_image.hasNext()):
+		cursor_image.fwd()
+		if (cursor_image.get().get() > threshold):
+				cursor_image.get().set( 1 )
+		else:
+				cursor_image.get().set( 0 )
+
+curr_image2 = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/generation00012_max_prey.png").getImgPlus()
+for i in range(len(kernels)):
+	curr_image2 = ops.filter().convolve(curr_image2, kernels[i])
+				
 image1=ops.create().imgPlus(classification[0])
 image1.setName("image1")
 
@@ -130,3 +148,9 @@ image2.setName("image2")
 
 image3=ops.create().imgPlus(classification[2])
 image3.setName("image3")
+
+image4=ops.create().imgPlus(curr_image)
+image4.setName("image4")
+
+image5=ops.create().imgPlus(curr_image2)
+image5.setName("image5")
