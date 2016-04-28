@@ -1,6 +1,7 @@
 # @OpService ops
 # @DatasetIOService ds
 # @UIService ui
+# @ImageJ ij
 # @String(value="/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/") data_dir
 # @OUTPUT ImgPlus image1
 # @OUTPUT ImgPlus image2
@@ -189,13 +190,15 @@ for i in range(NUM_BOOSTING):
 				else:
 						cursor_output.get().set(-1.0)
 				k += 1
-		if (i == NUM_BOOSTING - 1):
-			ui.show(output)
+		ij.scifio().datasetIO().save(output,"%s/boosting_%d_imagenum_%d.jpg" % (data_dir, i, j))
+#		if (i == NUM_BOOSTING - 1):
+#			ui.show(output)
 	print("iteration!")
-
-image1=ops.create().imgPlus(final_images[0])
-image1.setName("image1")
-image2=ops.create().imgPlus(final_images[1])
-image2.setName("image2")
-image3=ops.create().imgPlus(final_images[2])
-image3.setName("image3")
+for i in range(NUM_IMAGES):
+	ij.scifio().datasetIO().save(final_images[i],"%s/final_%d.jpg" % (data_dir, i))
+#image1=ops.create().imgPlus(final_images[0])
+#image1.setName("image1")
+#image2=ops.create().imgPlus(final_images[1])
+#image2.setName("image2")
+#image3=ops.create().imgPlus(final_images[2])
+#image3.setName("image3")
