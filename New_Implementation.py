@@ -204,7 +204,7 @@ for i in range(NUM_IMAGES):
 
 f = open("%s/error_curve.csv" % (data_dir), "w")
 for i in range(len(error_vis[0])):
-	f.write('\t'.join([str(error_vis[j][i]) for j in range(len(error_vis))]))
+	f.write('\t'.join([str(error_vis[j][i]) for j in range(len(error_vis))]) + "\n")
 f.close()
 #image1=ops.create().imgPlus(final_images[0])
 #image1.setName("image1")
