@@ -1,6 +1,7 @@
 # @OpService ops
 # @DatasetIOService ds
 # @UIService ui
+# @String(value="/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/") data_dir
 # @OUTPUT ImgPlus image1
 # @OUTPUT ImgPlus image2
 # @OUTPUT ImgPlus image3
@@ -43,8 +44,8 @@ final_images = []
 
 #make initial "ensemble" a blank image and initialize weights	
 for i in range(NUM_IMAGES):
-	curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
-	error_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
+	curr_image = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
+	error_image = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
 	
 	curr_image = ops.convert().float32(curr_image)
 	error_image = ops.convert().float32(error_image)
@@ -74,7 +75,7 @@ for i in range(1,NUM_IMAGES + 1):
 #		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
 #		
 #	else:
-	curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/classification.png").getImgPlus()
+	curr_image = ds.open("%s/classification.png" % data_dir).getImgPlus()
 	curr_image = ops.convert().float32(curr_image)
 	cursor_curr=curr_image.cursor()
 
@@ -85,7 +86,7 @@ for i in range(1,NUM_IMAGES + 1):
 		else:
 			cursor_curr.get().set(1.0)
 	classification.append(curr_image)
-	curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/generation0000%d_max_prey.png" % (i * NUM_IMAGES)).getImgPlus()
+	curr_image = ds.open("%s/generation0000%d_max_prey.png" % (data_dir, i * NUM_IMAGES)).getImgPlus()
 	
 	#normalize image
 	curr_image = ops.convert().float32(curr_image)
