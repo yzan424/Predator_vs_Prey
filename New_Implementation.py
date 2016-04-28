@@ -190,12 +190,12 @@ for i in range(NUM_BOOSTING):
 				else:
 						cursor_output.get().set(-1.0)
 				k += 1
-		ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint16(output)),"%s/boosting_%d_imagenum_%d.jpg" % (data_dir, i, j))
+		ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(output)),"%s/boosting_%d_imagenum_%d.jpg" % (data_dir, i, j))
 #		if (i == NUM_BOOSTING - 1):
 #			ui.show(output)
 	print("iteration!")
 for i in range(NUM_IMAGES):
-	ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint16(final_images[i])),"%s/final_%d.jpg" % (data_dir, i))
+	ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(final_images[i])),"%s/final_%d.jpg" % (data_dir, i))
 #image1=ops.create().imgPlus(final_images[0])
 #image1.setName("image1")
 #image2=ops.create().imgPlus(final_images[1])
