@@ -7,18 +7,13 @@
 # @OUTPUT ImgPlus image2
 # @OUTPUT ImgPlus image3
 
-# TODO: CHECK OLD IMPLEMENTATION WORKS WITH DIFFERENTLY ORIENTED PREY
-# TODO: PEROFORM TESTING ON OLD IMPLEMTNATION (STACK KERNELS)
-# TODO: INCREASE BOOSTING TIMES AND KERNEL SEARCHING TIMES ON NEW IMPLEMENTATION
+#TODO: CHECK ACCURACY AFTER EACH BOOSTING TO DEFEND ERROR GOING UP
+#TODO: For symposium, input image, kernel, output, best kernel of each boosting phase. throw in flounder
 
 from net.imglib2 import Point
-
 from net.imglib2.algorithm.region.hypersphere import HyperSphere
-
 from ij import IJ
-
 from mpicbg.imglib.interpolation.nearestneighbor import NearestNeighborInterpolatorFactory;
-
 import random
 import math
 
@@ -36,11 +31,9 @@ Y_KERNEL = 5
 
 preys = []
 classification = []
-#TODO: CHANGE THIS TO CURSORS
-#TODO: POTENTIALLY MULTIPLE BY NUM_IMAGES TO MAKE BEST ERROR CALC NOT AN AVERAGE
 error_weights = []
 error_vis = []
-
+accuracy_vis = []
 final_images = []
 
 #make initial "ensemble" a blank image and initialize weights	
@@ -62,7 +55,6 @@ for i in range(NUM_IMAGES):
 	error_weights.append(error_image)
 	final_images.append(curr_image)
 	
-
 #load relevant images
 for i in range(1,NUM_IMAGES + 1):
 #	if (i == 1):
@@ -87,6 +79,7 @@ for i in range(1,NUM_IMAGES + 1):
 		else:
 			cursor_curr.get().set(1.0)
 	classification.append(curr_image)
+	
 	curr_image = ds.open("%s/generation0000%d_max_prey.png" % (data_dir, i * NUM_IMAGES)).getImgPlus()
 	
 	#normalize image
@@ -113,6 +106,7 @@ for i in range(NUM_BOOSTING):
 		cursor_image.get().set(random.uniform(-.1, 0.1))
 	
 	best_error = NUM_IMAGES + 1.0
+	best_accuracy = 0.0
 #	print("First error: %s" % str(error_weights[:2][:10]))
 #	print("Sum error: %f" % sum(error_weights[0]))
 	kernel_mod = ops.copy().img(kernel_best)	
@@ -127,6 +121,7 @@ for i in range(NUM_BOOSTING):
 				cursor_kernel_mod.get().set( cursor_kernel_mod.get().get() + random.uniform(-.001, 0.001))
 		
 		mod_error = 0.0
+		accuracy = 0.0
 
 		#calculate cumulative error on all images
 		for curr_prey_index in range(NUM_IMAGES):	
@@ -147,6 +142,8 @@ for i in range(NUM_BOOSTING):
 						cursor_convolved_mod.get().set( -1.0 )	
 				if xor(cursor_convolved_mod.get().get(),cursor_class.get().get()) == False:
 						mod_error += 1.0 * cursor_error.get().get()
+				else:
+						accuracy += 1.0
 				curr_pixel_index += 1
 
 		#replace best kernel if outperformed
@@ -155,7 +152,7 @@ for i in range(NUM_BOOSTING):
 		if (mod_error < best_error):
 				kernel_best = ops.copy().img(kernel_mod)
 				best_error = mod_error
-				
+				best_accuracy = accuracy / (X_DIM * Y_DIM * NUM_IMAGES)
 		else:
 				kernel_mod = ops.copy().img(kernel_best)
 		curr_error_curve.append(best_error)	
@@ -197,6 +194,7 @@ for i in range(NUM_BOOSTING):
 #		if (i == NUM_BOOSTING - 1):
 #			ui.show(output)
 	error_vis.append(curr_error_curve)
+	accuracy_vis.append(best_accuracy)
 	print("iteration!")
 	
 for i in range(NUM_IMAGES):
@@ -205,6 +203,7 @@ for i in range(NUM_IMAGES):
 f = open("%s/error_curve.csv" % (data_dir), "w")
 for i in range(len(error_vis[0])):
 	f.write('\t'.join([str(error_vis[j][i]) for j in range(len(error_vis))]) + "\n")
+f.write('\t'.join([str(accuracy_vis[i]) for i in range(len(accuracy_vis))]) + "\n")
 f.close()
 #image1=ops.create().imgPlus(final_images[0])
 #image1.setName("image1")
