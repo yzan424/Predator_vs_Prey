@@ -23,8 +23,8 @@ def xor(a,b):
 X_DIM = 250
 Y_DIM = 250
 NUM_IMAGES = 3
-NUM_BOOSTING = 20
-NUM_KERNEL_SEARCHING = 500
+NUM_BOOSTING = 10
+NUM_KERNEL_SEARCHING = 1000
 THRESHOLD = 0
 X_KERNEL = 5
 Y_KERNEL = 5
@@ -202,14 +202,35 @@ for i in range(NUM_BOOSTING):
 	print(best_accuracy)
 	print("iteration!")
 	
-#for i in range(NUM_IMAGES):
-#	ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(final_images[i])),"%s/final_%d.jpg" % (data_dir, i))
-#
-#f = open("%s/error_curve.csv" % (data_dir), "w")
-#for i in range(len(error_vis[0])):
-#	f.write('\t'.join([str(error_vis[j][i]) for j in range(len(error_vis))]) + "\n")
-#f.write('\t'.join([str(accuracy_vis[i]) for i in range(len(accuracy_vis))]) + "\n")
-#f.close()
+best_accuracy = 0.0
+
+for j in range(NUM_IMAGES):
+	output = final_images[j]
+	cursor_final=final_images[j].cursor()
+	cursor_class=classification[j].cursor()
+	cursor_output = output.cursor()
+
+	while ( cursor_final.hasNext()):
+			cursor_final.fwd()
+			cursor_class.fwd()
+			
+			if (cursor_final.get().get() > THRESHOLD):
+					cursor_output.get().set(1.0)
+			else:
+					cursor_output.get().set(-1.0)
+			if xor(cursor_output.get().get(),cursor_class.get().get()) == True:
+					best_accuracy += 1.0
+
+best_accuracy /= NUM_IMAGES * X_DIM * Y_DIM
+print("Final accuracy: %f" % best_accuracy)
+for i in range(NUM_IMAGES):
+	ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(final_images[i])),"%s/final_%d.jpg" % (data_dir, i))
+
+f = open("%s/error_curve.csv" % (data_dir), "w")
+for i in range(len(error_vis[0])):
+	f.write('\t'.join([str(error_vis[j][i]) for j in range(len(error_vis))]) + "\n")
+f.write('\t'.join([str(accuracy_vis[i]) for i in range(len(accuracy_vis))]) + "\n")
+f.close()
 #image1=ops.create().imgPlus(final_images[0])
 #image1.setName("image1")
 #image2=ops.create().imgPlus(final_images[1])
