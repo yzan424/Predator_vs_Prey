@@ -23,8 +23,8 @@ def xor(a,b):
 X_DIM = 250
 Y_DIM = 250
 NUM_IMAGES = 3
-NUM_BOOSTING = 3
-NUM_KERNEL_SEARCHING = 100
+NUM_BOOSTING = 20
+NUM_KERNEL_SEARCHING = 500
 THRESHOLD = 0
 X_KERNEL = 5
 Y_KERNEL = 5
@@ -50,13 +50,13 @@ for i in range(NUM_IMAGES):
 		cursor_curr.fwd()
 		cursor_error.fwd()
 		cursor_curr.get().set(0)
-		cursor_error.get().set(1.0/(X_DIM * Y_DIM * NUM_IMAGES))
+		cursor_error.get().set(1.0 / (X_DIM * Y_DIM * NUM_IMAGES))
 		
 	error_weights.append(error_image)
 	final_images.append(curr_image)
 	
 #load relevant images
-for i in range(1,NUM_IMAGES + 1):
+for i in range(1, NUM_IMAGES + 1):
 #	if (i == 1):
 #		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
 #		cursor_curr=curr_image.cursor()
@@ -107,8 +107,6 @@ for i in range(NUM_BOOSTING):
 	
 	best_error = NUM_IMAGES + 1.0
 	best_accuracy = 0.0
-#	print("First error: %s" % str(error_weights[:2][:10]))
-#	print("Sum error: %f" % sum(error_weights[0]))
 	kernel_mod = ops.copy().img(kernel_best)	
 
 	#look for kernel that maximizes performance
@@ -122,24 +120,24 @@ for i in range(NUM_BOOSTING):
 		
 		mod_error = 0.0
 		accuracy = 0.0
-
+		
 		#calculate cumulative error on all images
 		for curr_prey_index in range(NUM_IMAGES):	
 			convolved_mod=ops.filter().convolve(preys[curr_prey_index], kernel_mod)
 			
-			cursor_class=classification[curr_prey_index].cursor()
-			cursor_convolved_mod=convolved_mod.cursor()
+			cursor_class = classification[curr_prey_index].cursor()
+			cursor_convolved_mod = convolved_mod.cursor()
 			cursor_error = error_weights[curr_prey_index].cursor()
 			curr_pixel_index = 0
-			
+
 			while ( cursor_convolved_mod.hasNext()):
 				cursor_convolved_mod.fwd()
 				cursor_error.fwd()
 				cursor_class.fwd()
 				if (cursor_convolved_mod.get().get() > THRESHOLD):
-						cursor_convolved_mod.get().set( 1.0 )
+						cursor_convolved_mod.get().set(1.0)
 				else:
-						cursor_convolved_mod.get().set( -1.0 )	
+						cursor_convolved_mod.get().set(-1.0)	
 				if xor(cursor_convolved_mod.get().get(),cursor_class.get().get()) == False:
 						mod_error += 1.0 * cursor_error.get().get()
 				else:
@@ -147,8 +145,6 @@ for i in range(NUM_BOOSTING):
 				curr_pixel_index += 1
 
 		#replace best kernel if outperformed
-#		print("Mod error: %f" % mod_error)
-#		print("Best error: %f" % best_error)
 		if (mod_error < best_error):
 				kernel_best = ops.copy().img(kernel_mod)
 				best_error = mod_error
@@ -158,10 +154,12 @@ for i in range(NUM_BOOSTING):
 		curr_error_curve.append(best_error)	
 			
 	#weight to put on convolved image before adding to ensemble	
-#	if (best_error == 0):
-#		kernel_weight = 1
-#	else:
-	kernel_weight = .5 * math.log((1.0 - best_error)/best_error)
+	if (best_error == 0):
+		kernel_weight = 1
+	else:
+		kernel_weight = .5 * math.log((1.0 - best_error)/best_error)
+	
+	weight_sum = 0.0
 	
 	for j in range(NUM_IMAGES):
 		convolved_best=ops.filter().convolve(preys[j], kernel_best)
@@ -172,7 +170,6 @@ for i in range(NUM_BOOSTING):
 		cursor_class=classification[j].cursor()
 		cursor_output = output.cursor()
 		cursor_error = error_weights[j].cursor()
-		k = 0
 		
 		#add to ensemble, update pixel error weighting
 		while ( cursor_final.hasNext()):
@@ -185,26 +182,34 @@ for i in range(NUM_BOOSTING):
 				#used to have type casting to integer
 				cursor_final.get().set(cursor_final.get().get() + cursor_convolved_best.get().get() * kernel_weight)
 				cursor_error.get().set(cursor_error.get().get() * (math.exp(-1.0 * cursor_class.get().get() * cursor_convolved_best.get().get() * kernel_weight)))
+				weight_sum += cursor_error.get().get()
+				
 				if (cursor_final.get().get() > THRESHOLD):
 						cursor_output.get().set(1.0)
 				else:
 						cursor_output.get().set(-1.0)
-				k += 1
-		ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(output)),"%s/boosting_%d_imagenum_%d.jpg" % (data_dir, i, j))
+#		ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(output)),"%s/boosting_%d_imagenum_%d.jpg" % (data_dir, i, j))
 #		if (i == NUM_BOOSTING - 1):
 #			ui.show(output)
+	for j in range(NUM_IMAGES):
+		cursor_error = error_weights[j].cursor()
+		while (cursor_error.hasNext()):
+			cursor_error.fwd()
+			cursor_error.get().set(cursor_error.get().get() / weight_sum)
+	
 	error_vis.append(curr_error_curve)
 	accuracy_vis.append(best_accuracy)
+	print(best_accuracy)
 	print("iteration!")
 	
-for i in range(NUM_IMAGES):
-	ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(final_images[i])),"%s/final_%d.jpg" % (data_dir, i))
-
-f = open("%s/error_curve.csv" % (data_dir), "w")
-for i in range(len(error_vis[0])):
-	f.write('\t'.join([str(error_vis[j][i]) for j in range(len(error_vis))]) + "\n")
-f.write('\t'.join([str(accuracy_vis[i]) for i in range(len(accuracy_vis))]) + "\n")
-f.close()
+#for i in range(NUM_IMAGES):
+#	ij.scifio().datasetIO().save(ij.dataset().create(ops.convert().uint8(final_images[i])),"%s/final_%d.jpg" % (data_dir, i))
+#
+#f = open("%s/error_curve.csv" % (data_dir), "w")
+#for i in range(len(error_vis[0])):
+#	f.write('\t'.join([str(error_vis[j][i]) for j in range(len(error_vis))]) + "\n")
+#f.write('\t'.join([str(accuracy_vis[i]) for i in range(len(accuracy_vis))]) + "\n")
+#f.close()
 #image1=ops.create().imgPlus(final_images[0])
 #image1.setName("image1")
 #image2=ops.create().imgPlus(final_images[1])
