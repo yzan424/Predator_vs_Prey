@@ -25,7 +25,7 @@ Y_DIM = 250
 NUM_IMAGES = 3
 NUM_BOOSTING = 10
 NUM_KERNEL_SEARCHING = 1000
-THRESHOLD = 0
+THRESHOLD = 0.5
 X_KERNEL = 5
 Y_KERNEL = 5
 
@@ -38,22 +38,22 @@ final_images = []
 
 #make initial "ensemble" a blank image and initialize weights	
 for i in range(NUM_IMAGES):
-	curr_image = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
+	ensemble = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
 	error_image = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
 	
-	curr_image = ops.convert().float32(curr_image)
+	ensemble = ops.convert().float32(ensemble)
 	error_image = ops.convert().float32(error_image)
-	cursor_curr = curr_image.cursor()
+	cursor_ensemble = ensemble.cursor()
 	cursor_error = error_image.cursor()
 	
-	while ( cursor_curr.hasNext()):
-		cursor_curr.fwd()
+	while ( cursor_ensemble.hasNext()):
+		cursor_ensemble.fwd()
 		cursor_error.fwd()
-		cursor_curr.get().set(0)
+		cursor_ensemble.get().set(0)
 		cursor_error.get().set(1.0 / (X_DIM * Y_DIM * NUM_IMAGES))
 		
 	error_weights.append(error_image)
-	final_images.append(curr_image)
+	final_images.append(ensemble)
 	
 #load relevant images
 for i in range(1, NUM_IMAGES + 1):
@@ -68,42 +68,41 @@ for i in range(1, NUM_IMAGES + 1):
 #		curr_image = ds.open("/Users/test/Desktop/Git/Predator_vs_Prey/prey_images/grass_greyscale.jpg").getImgPlus()
 #		
 #	else:
-	curr_image = ds.open("%s/classification.png" % data_dir).getImgPlus()
-	curr_image = ops.convert().float32(curr_image)
-	cursor_curr=curr_image.cursor()
+	curr_class = ds.open("%s/classification.png" % data_dir).getImgPlus()
+	curr_class = ops.convert().float32(curr_class)
+	cursor_class = curr_class.cursor()
 
-	while ( cursor_curr.hasNext()):
-		cursor_curr.fwd()
-		if (cursor_curr.get().get() == 0):
-			cursor_curr.get().set(-1.0)
+	while (cursor_class.hasNext()):
+		cursor_class.fwd()
+		if (cursor_class.get().get() == 0):
+			cursor_class.get().set(-1.0)
 		else:
-			cursor_curr.get().set(1.0)
-	classification.append(curr_image)
+			cursor_class.get().set(1.0)
+	classification.append(curr_class)
 	
 	curr_image = ds.open("%s/generation0000%d_max_prey.png" % (data_dir, i * NUM_IMAGES)).getImgPlus()
 	
 	#normalize image
 	curr_image = ops.convert().float32(curr_image)
-	cursor_image=curr_image.cursor()
+	cursor_image = curr_image.cursor()
 	mean = ops.stats().mean(curr_image)
 	std_dev = ops.stats().stdDev(curr_image)
 	
-	while ( cursor_image.hasNext()):
+	while (cursor_image.hasNext()):
 		cursor_image.fwd()
-		cursor_image.get().set( (cursor_image.get().get() - mean.get())/ std_dev.get() )
+		cursor_image.get().set((cursor_image.get().get() - mean.get())/ std_dev.get())
 		
 	preys.append(curr_image)
 
 #main loop
 for i in range(NUM_BOOSTING):
-#		TODO: MAKE KERNEL NORMALIZED
 	kernel_best = ops.create().kernelGauss([X_KERNEL, Y_KERNEL])
-	cursor_image=kernel_best.cursor()
+	cursor_kernel_best = kernel_best.cursor()
 	curr_error_curve = []
 	
-	while ( cursor_image.hasNext()):
-		cursor_image.fwd()
-		cursor_image.get().set(random.uniform(-.1, 0.1))
+	while (cursor_kernel_best.hasNext()):
+		cursor_kernel_best.fwd()
+		cursor_kernel_best.get().set(random.uniform(-.1, 0.1))
 	
 	best_error = NUM_IMAGES + 1.0
 	best_accuracy = 0.0
@@ -114,26 +113,29 @@ for i in range(NUM_BOOSTING):
 		cursor_kernel_mod = kernel_mod.cursor()
 
 		#create a potentially better kernel
-		while ( cursor_kernel_mod.hasNext()):
+		while (cursor_kernel_mod.hasNext()):
 				cursor_kernel_mod.fwd()
-				cursor_kernel_mod.get().set( cursor_kernel_mod.get().get() + random.uniform(-.001, 0.001))
+				cursor_kernel_mod.get().set(cursor_kernel_mod.get().get() + random.uniform(-.001, 0.001))
 		
 		mod_error = 0.0
-		accuracy = 0.0
+		curr_accuracy = 0.0
 		
 		#calculate cumulative error on all images
 		for curr_prey_index in range(NUM_IMAGES):	
-			convolved_mod=ops.filter().convolve(preys[curr_prey_index], kernel_mod)
+			convolved_mod = ops.filter().convolve(preys[curr_prey_index], kernel_mod)
 			
 			cursor_class = classification[curr_prey_index].cursor()
 			cursor_convolved_mod = convolved_mod.cursor()
 			cursor_error = error_weights[curr_prey_index].cursor()
 			curr_pixel_index = 0
 
-			while ( cursor_convolved_mod.hasNext()):
+			while (cursor_convolved_mod.hasNext()):
 				cursor_convolved_mod.fwd()
 				cursor_error.fwd()
 				cursor_class.fwd()
+				
+				cursor_convolved_mod.get().set(1.0 / (1.0 + math.exp(-1 * cursor_convolved_mod.get().get())))
+				
 				if (cursor_convolved_mod.get().get() > THRESHOLD):
 						cursor_convolved_mod.get().set(1.0)
 				else:
@@ -141,14 +143,14 @@ for i in range(NUM_BOOSTING):
 				if xor(cursor_convolved_mod.get().get(),cursor_class.get().get()) == False:
 						mod_error += 1.0 * cursor_error.get().get()
 				else:
-						accuracy += 1.0
+						curr_accuracy += 1.0
 				curr_pixel_index += 1
 
 		#replace best kernel if outperformed
 		if (mod_error < best_error):
 				kernel_best = ops.copy().img(kernel_mod)
 				best_error = mod_error
-				best_accuracy = accuracy / (X_DIM * Y_DIM * NUM_IMAGES)
+				best_accuracy = curr_accuracy / (X_DIM * Y_DIM * NUM_IMAGES)
 		else:
 				kernel_mod = ops.copy().img(kernel_best)
 		curr_error_curve.append(best_error)	
@@ -162,17 +164,17 @@ for i in range(NUM_BOOSTING):
 	weight_sum = 0.0
 	
 	for j in range(NUM_IMAGES):
-		convolved_best=ops.filter().convolve(preys[j], kernel_best)
+		convolved_best = ops.filter().convolve(preys[j], kernel_best)
 		output = ops.filter().convolve(preys[j], kernel_best)
 		
-		cursor_convolved_best=convolved_best.cursor()
-		cursor_final=final_images[j].cursor()
-		cursor_class=classification[j].cursor()
+		cursor_convolved_best = convolved_best.cursor()
+		cursor_final = final_images[j].cursor()
+		cursor_class = classification[j].cursor()
 		cursor_output = output.cursor()
 		cursor_error = error_weights[j].cursor()
 		
 		#add to ensemble, update pixel error weighting
-		while ( cursor_final.hasNext()):
+		while (cursor_final.hasNext()):
 				cursor_final.fwd()
 				cursor_convolved_best.fwd()
 				cursor_class.fwd()
@@ -183,6 +185,8 @@ for i in range(NUM_BOOSTING):
 				cursor_final.get().set(cursor_final.get().get() + cursor_convolved_best.get().get() * kernel_weight)
 				cursor_error.get().set(cursor_error.get().get() * (math.exp(-1.0 * cursor_class.get().get() * cursor_convolved_best.get().get() * kernel_weight)))
 				weight_sum += cursor_error.get().get()
+
+				cursor_final.get().set(1.0 / (1.0 + math.exp(-1 * cursor_final.get().get())))
 				
 				if (cursor_final.get().get() > THRESHOLD):
 						cursor_output.get().set(1.0)
@@ -206,11 +210,11 @@ best_accuracy = 0.0
 
 for j in range(NUM_IMAGES):
 	output = final_images[j]
-	cursor_final=final_images[j].cursor()
-	cursor_class=classification[j].cursor()
+	cursor_final = final_images[j].cursor()
+	cursor_class = classification[j].cursor()
 	cursor_output = output.cursor()
 
-	while ( cursor_final.hasNext()):
+	while (cursor_final.hasNext()):
 			cursor_final.fwd()
 			cursor_class.fwd()
 			
