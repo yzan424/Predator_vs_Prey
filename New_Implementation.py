@@ -7,8 +7,9 @@
 # @OUTPUT ImgPlus image2
 # @OUTPUT ImgPlus image3
 
-#TODO: CHECK ACCURACY AFTER EACH BOOSTING TO DEFEND ERROR GOING UP
-#TODO: For symposium, input image, kernel, output, best kernel of each boosting phase. throw in flounder
+#TODO: Transpose Kernel, convolve it with the error image (threshold based on xor result) to get kernel sized output, and then 
+# 																									1. original kernel minus scalar multplicatoin between learning rate and kernel sized output, becomes new kernel 
+#																									2. convolve original input with kernel sized output, then figure shit out
 
 from net.imglib2 import Point
 from net.imglib2.algorithm.region.hypersphere import HyperSphere
@@ -112,10 +113,6 @@ for i in range(NUM_BOOSTING):
 	for j in range(NUM_KERNEL_SEARCHING): 
 		cursor_kernel_mod = kernel_mod.cursor()
 
-		#create a potentially better kernel
-		while (cursor_kernel_mod.hasNext()):
-				cursor_kernel_mod.fwd()
-				cursor_kernel_mod.get().set(cursor_kernel_mod.get().get() + random.uniform(-.001, 0.001))
 		
 		mod_error = 0.0
 		curr_accuracy = 0.0
@@ -145,7 +142,12 @@ for i in range(NUM_BOOSTING):
 				else:
 						curr_accuracy += 1.0
 				curr_pixel_index += 1
-
+				
+		#create a potentially better kernel
+		while (cursor_kernel_mod.hasNext()):
+				cursor_kernel_mod.fwd()
+				cursor_kernel_mod.get().set(cursor_kernel_mod.get().get() + random.uniform(-.001, 0.001))
+		
 		#replace best kernel if outperformed
 		if (mod_error < best_error):
 				kernel_best = ops.copy().img(kernel_mod)
