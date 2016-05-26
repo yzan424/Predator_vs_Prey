@@ -10,6 +10,8 @@
 #TODO: Transpose Kernel, convolve it with the error image (threshold based on xor result) to get kernel sized output, and then 
 # 																									1. original kernel minus scalar multplicatoin between learning rate and kernel sized output, becomes new kernel 
 #																									2. convolve original input with kernel sized output, then figure shit out
+#TODO: Circular wrap when convolving
+#TODO: Create an error image that results from current kernel convolution
 
 from net.imglib2 import Point
 from net.imglib2.algorithm.region.hypersphere import HyperSphere
@@ -33,9 +35,16 @@ Y_KERNEL = 5
 preys = []
 classification = []
 error_weights = []
+error_curr_kernel = []
 error_vis = []
 accuracy_vis = []
 final_images = []
+
+error_curr_kernel = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
+error_curr_kernel = ops.convert().float32(error_curr_kernel)
+cursor_curr_kernel_error = error_curr_kernel.cursor()
+while(cursor_curr_kernel_error.hasNext()):
+	cursor_curr_kernel_error.get().set(0)
 
 #make initial "ensemble" a blank image and initialize weights	
 for i in range(NUM_IMAGES):
@@ -113,7 +122,6 @@ for i in range(NUM_BOOSTING):
 	for j in range(NUM_KERNEL_SEARCHING): 
 		cursor_kernel_mod = kernel_mod.cursor()
 
-		
 		mod_error = 0.0
 		curr_accuracy = 0.0
 		
@@ -156,6 +164,7 @@ for i in range(NUM_BOOSTING):
 		else:
 				kernel_mod = ops.copy().img(kernel_best)
 		curr_error_curve.append(best_error)	
+	
 			
 	#weight to put on convolved image before adding to ensemble	
 	if (best_error == 0):
