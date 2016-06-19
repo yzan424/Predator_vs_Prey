@@ -19,6 +19,7 @@ from ij import IJ
 from mpicbg.imglib.interpolation.nearestneighbor import NearestNeighborInterpolatorFactory;
 import random
 import math
+import numpy as np
 
 def xor(a,b):
 	return (a > THRESHOLD and b > THRESHOLD) or (a <= THRESHOLD and b <= THRESHOLD)
@@ -50,17 +51,22 @@ while(cursor_curr_kernel_error.hasNext()):
 for i in range(NUM_IMAGES):
 	ensemble = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
 	error_image = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
+	xor_error = ds.open("%s/grass_greyscale.jpg" % data_dir).getImgPlus()
 	
 	ensemble = ops.convert().float32(ensemble)
 	error_image = ops.convert().float32(error_image)
 	cursor_ensemble = ensemble.cursor()
 	cursor_error = error_image.cursor()
+	cursor_xor = xor_error.cursor()
 	
 	while ( cursor_ensemble.hasNext()):
 		cursor_ensemble.fwd()
 		cursor_error.fwd()
+		cursor_xor.fwd()
+		
 		cursor_ensemble.get().set(0)
 		cursor_error.get().set(1.0 / (X_DIM * Y_DIM * NUM_IMAGES))
+		cursor_xor.get().set(0)
 		
 	error_weights.append(error_image)
 	final_images.append(ensemble)
@@ -132,12 +138,14 @@ for i in range(NUM_BOOSTING):
 			cursor_class = classification[curr_prey_index].cursor()
 			cursor_convolved_mod = convolved_mod.cursor()
 			cursor_error = error_weights[curr_prey_index].cursor()
+			cursor_xor = xor_error.cursor()
 			curr_pixel_index = 0
 
 			while (cursor_convolved_mod.hasNext()):
 				cursor_convolved_mod.fwd()
 				cursor_error.fwd()
 				cursor_class.fwd()
+				cursor_xor.fwd()
 				
 				cursor_convolved_mod.get().set(1.0 / (1.0 + math.exp(-1 * cursor_convolved_mod.get().get())))
 				
@@ -147,9 +155,16 @@ for i in range(NUM_BOOSTING):
 						cursor_convolved_mod.get().set(-1.0)	
 				if xor(cursor_convolved_mod.get().get(),cursor_class.get().get()) == False:
 						mod_error += 1.0 * cursor_error.get().get()
+						cursor_xor.get().set(0)
 				else:
 						curr_accuracy += 1.0
+						cursor_xor.get().set(1)
 				curr_pixel_index += 1
+
+		#transpose kernel, convolve with error image (which doesnt get saved... it that ok?) to get kernel sized output
+			kernel_transpose = np.transpose(kernel_mod)
+			result = ops.filter().convolve(kernel_transpose, xor_error)
+			#that should make it kernel sized result, now what...
 				
 		#create a potentially better kernel
 		while (cursor_kernel_mod.hasNext()):
